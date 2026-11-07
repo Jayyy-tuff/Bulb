@@ -177,6 +177,10 @@ android {
     packagingOptions {
         jniLibs {
             useLegacyPackaging = true
+            // CMake writes libfakeinput.so into src/main/jniLibs as well as its own
+            // output folder, so a clean CI build sees it twice. Both come from
+            // winlator/fakeinput.cpp; keep one.
+            pickFirsts += ['lib/arm64-v8a/libfakeinput.so']
         }
     }
 }
