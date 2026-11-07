@@ -61,6 +61,14 @@ android {
     def ksKeyPassword = keystoreProps.getProperty('keystore.keyPassword', System.getenv('KEYSTORE_KEY_PASSWORD') ?: 'android')
 
     signingConfigs {
+        // Bulb builds are signed with app/bulb.keystore so every CI build
+        // installs over the previous one. Override with the KEYSTORE_* env vars.
+        bulbRelease {
+            storeFile file(System.getenv('BULB_KEYSTORE_FILE') ?: 'bulb.keystore')
+            storePassword System.getenv('BULB_KEYSTORE_PASSWORD') ?: 'bulbplayer'
+            keyAlias System.getenv('BULB_KEY_ALIAS') ?: 'bulb'
+            keyPassword System.getenv('BULB_KEYSTORE_PASSWORD') ?: 'bulbplayer'
+        }
         winxclipseUpdate {
             storeFile file(keystoreProps.getProperty('keystore.storeFile', System.getenv('KEYSTORE_STORE_FILE') ?: 'winxclipse-update.keystore'))
             storePassword ksStorePassword
@@ -95,27 +103,38 @@ android {
 
     buildTypes {
         debug {
-            signingConfig signingConfigs.winxclipseUpdate
+            // Signing is chosen per flavor below (Bulb vs WinXclipse identities).
+            signingConfig = null
         }
     }
 
     flavorDimensions "identity"
     productFlavors {
+        // Bulb: the main edition of this fork (own package, name and icon).
+        bulb {
+            dimension "identity"
+            applicationId "app.bulb.player"
+            signingConfig signingConfigs.bulbRelease
+        }
         winxclipse {
             dimension "identity"
             applicationId "com.win.xclipse"
+            signingConfig signingConfigs.winxclipseUpdate
         }
         antutu {
             dimension "identity"
             applicationId "com.antutu.ABenchMark"
+            signingConfig signingConfigs.winxclipseUpdate
         }
         geekbench {
             dimension "identity"
             applicationId "com.primatelabs.geekbench6"
+            signingConfig signingConfigs.winxclipseUpdate
         }
         pubg {
             dimension "identity"
             applicationId "com.tencent.ig"
+            signingConfig signingConfigs.winxclipseUpdate
         }
     }
 
@@ -135,8 +154,8 @@ android {
             minifyEnabled false
         }
         release {
-            // Current key shared across editions; old-key installs require backup/migration.
-            signingConfig signingConfigs.winxclipseUpdate
+            // Signing is chosen per flavor (Bulb: bulbRelease, other editions: winxclipseUpdate).
+            signingConfig = null
         }
     }
 

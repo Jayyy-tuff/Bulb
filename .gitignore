@@ -11,6 +11,8 @@ local.properties
 *.p12
 *.pfx
 keystore-password*.txt
+# Bulb's own signing key is kept in the repo so CI builds can update each other.
+!app/bulb.keystore
 
 *.apk
 *.apks
