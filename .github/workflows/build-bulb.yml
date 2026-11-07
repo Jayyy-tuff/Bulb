@@ -39,6 +39,10 @@ jobs:
           "$SDKM" --install "ndk;27.0.12077973" "cmake;3.22.1" "build-tools;35.0.0" "platforms;android-34" >/dev/null
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # The SDL2 submodule ships its own sample-project wrapper JAR that Gradle's
+          # list doesn't know. Bulb builds with the root ./gradlew (validated upstream).
+          validate-wrappers: false
 
       - name: Build Bulb (release)
         run: |
