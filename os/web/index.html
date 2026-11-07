@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#06070f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon.svg">
+<title>Bulb</title>
+<style>
+:root{
+  --bg:#06070f; --bg2:#0b0d1c; --glass:rgba(22,26,52,.55); --glass2:rgba(34,40,78,.55);
+  --line:rgba(140,160,255,.16); --line2:rgba(140,160,255,.28);
+  --text:#eef1ff; --dim:#9aa3c7; --mute:#646d93;
+  --amber:#ffd23f; --cyan:#3ff0ff; --pink:#ff3fa4; --green:#4dffa0; --red:#ff5a6e;
+  --r:18px; --r2:12px;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;overscroll-behavior:none}
+body{background:
+  radial-gradient(900px 500px at 85% -10%,rgba(255,210,63,.13),transparent 60%),
+  radial-gradient(800px 600px at -10% 30%,rgba(63,240,255,.10),transparent 60%),
+  radial-gradient(700px 500px at 60% 110%,rgba(255,63,164,.10),transparent 60%),var(--bg);
+  background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(120,140,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(120,140,255,.05) 1px,transparent 1px);
+  background-size:36px 36px;mask-image:linear-gradient(to bottom,#000,transparent 75%)}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--cyan)}
+a.btn{text-decoration:none}
+.hidden{display:none!important}
+#app{position:relative;min-height:100%;padding:calc(14px + var(--safe-t)) 16px calc(96px + var(--safe-b));max-width:1100px;margin:0 auto}
+
+/* header */
+.top{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(145deg,rgba(255,210,63,.25),rgba(255,210,63,.05));border:1px solid rgba(255,210,63,.45);
+  box-shadow:0 0 22px rgba(255,210,63,.35),inset 0 0 12px rgba(255,210,63,.2)}
+.logo svg{width:22px;height:22px}
+.brand{font-weight:800;letter-spacing:.14em;font-size:15px;text-transform:uppercase}
+.brand small{display:block;font-weight:500;letter-spacing:.04em;color:var(--dim);font-size:12px;text-transform:none}
+.top .sp{flex:1}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--glass);
+  font-size:12px;color:var(--dim);white-space:nowrap;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.dot.on{background:var(--green);box-shadow:0 0 10px var(--green)}
+.dot.warn{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.dot.off{background:var(--red);box-shadow:0 0 10px var(--red)}
+
+/* glass */
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:var(--r);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
+  box-shadow:0 10px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05)}
+.card{padding:16px}
+h1{font-size:26px;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:13px;margin:26px 2px 10px;text-transform:uppercase;letter-spacing:.16em;color:var(--dim);font-weight:700;display:flex;align-items:center;gap:10px}
+h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line2),transparent)}
+h3{margin:0 0 6px;font-size:16px}
+.sub{color:var(--dim);font-size:13px;line-height:1.45}
+.muted{color:var(--mute)}
+.row{display:flex;gap:10px;align-items:center}
+.wrap{flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(min-width:760px){.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}}
+@media(max-width:759px){.grid4{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
+
+/* buttons */
+.btn{appearance:none;border:1px solid var(--line2);background:var(--glass2);color:var(--text);border-radius:14px;padding:12px 16px;min-height:46px;
+  font-weight:650;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:transform .08s,box-shadow .2s,border-color .2s;touch-action:manipulation}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(135deg,var(--amber),#ffb000);color:#1a1200;border-color:transparent;box-shadow:0 0 24px rgba(255,210,63,.35)}
+.btn.cyan{background:linear-gradient(135deg,rgba(63,240,255,.25),rgba(63,240,255,.08));border-color:rgba(63,240,255,.5)}
+.btn.danger{border-color:rgba(255,90,110,.5);color:#ffc0c8;background:rgba(255,90,110,.1)}
+.btn.ghost{background:transparent}
+.btn.sm{min-height:36px;padding:7px 12px;border-radius:11px;font-size:13px}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.icon-btn{width:44px;height:44px;border-radius:14px;padding:0;min-height:0}
+
+/* forms */
+label.f{display:block;margin:12px 0 0}
+label.f>span{display:block;font-size:12px;color:var(--dim);margin:0 2px 6px;letter-spacing:.04em}
+.in,select.in,textarea.in{width:100%;background:rgba(5,7,18,.6);border:1px solid var(--line2);border-radius:12px;padding:12px 13px;min-height:46px;outline:none}
+.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(63,240,255,.15)}
+textarea.in{min-height:90px;font-family:var(--mono);font-size:12.5px}
+.seg{display:flex;padding:4px;gap:4px;border-radius:14px;background:rgba(5,7,18,.55);border:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:1;border:0;background:transparent;padding:10px 12px;border-radius:10px;color:var(--dim);font-weight:650;white-space:nowrap;min-height:40px}
+.seg button.on{background:var(--glass2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line2),0 0 16px rgba(63,240,255,.12)}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.toggle:last-child{border-bottom:0}
+.sw{position:relative;width:52px;height:30px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer}
+.sw i{position:absolute;inset:0;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid var(--line2);transition:.2s;pointer-events:none}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#cfd5f5;transition:.2s}
+.sw input:checked+i{background:rgba(255,210,63,.3);border-color:var(--amber)}
+.sw input:checked+i::after{left:25px;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber)}
+
+/* stats */
+.stat{padding:14px;min-height:96px;display:flex;flex-direction:column;gap:6px}
+.stat .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.stat .v{font-size:22px;font-weight:800}
+.bar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--amber));border-radius:9px}
+
+/* library */
+.tools{display:flex;gap:10px;margin:12px 0}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips .chip{cursor:pointer;flex:none}
+.chips .chip.on{color:var(--text);border-color:var(--amber);box-shadow:0 0 12px rgba(255,210,63,.25)}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+@media(min-width:700px){.games{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
+.game{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:3/4;border:1px solid var(--line);background:#0c0f22;cursor:pointer;
+  box-shadow:0 8px 30px rgba(0,0,0,.4);transition:transform .12s;touch-action:manipulation}
+.game:active{transform:scale(.97)}
+.game .art{position:absolute;inset:0;background-size:cover;background-position:center}
+.game .gen{position:absolute;inset:0;display:grid;place-items:center;font-weight:900;font-size:40px;letter-spacing:-.02em;color:rgba(255,255,255,.9);text-shadow:0 0 30px rgba(255,255,255,.35)}
+.game .shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(4,5,12,.95) 0%,rgba(4,5,12,.2) 45%,transparent 70%)}
+.game .meta{position:absolute;left:10px;right:10px;bottom:10px}
+.game .t{font-weight:750;font-size:14px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.game .s{font-size:11px;color:var(--dim);margin-top:3px}
+.badge{position:absolute;top:8px;left:8px;font-size:10px;font-weight:800;letter-spacing:.08em;padding:4px 7px;border-radius:7px;background:rgba(5,7,18,.75);border:1px solid var(--line2);text-transform:uppercase}
+.badge.pc{color:var(--cyan);border-color:rgba(63,240,255,.5)}
+.badge.web{color:var(--pink);border-color:rgba(255,63,164,.5)}
+.badge.rom{color:var(--amber);border-color:rgba(255,210,63,.5)}
+.empty{padding:28px 18px;text-align:center}
+.empty .big{font-size:42px;margin-bottom:8px}
+.recent{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.recent::-webkit-scrollbar{display:none}
+.recent .game{flex:none;width:128px}
+
+/* add */
+.addopt{display:flex;gap:14px;align-items:center;padding:16px;cursor:pointer;margin-bottom:12px}
+.addopt .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:24px;flex:none;border:1px solid var(--line2)}
+.uploads .u{padding:12px 14px;margin-top:10px}
+.uploads .u .bar{margin-top:8px}
+
+/* apps */
+.app{padding:16px;display:flex;flex-direction:column;gap:12px}
+.app .head{display:flex;gap:12px;align-items:center}
+.app .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:26px;border:1px solid var(--line2);flex:none}
+.app .acts{display:flex;gap:8px;flex-wrap:wrap}
+pre.log{max-height:260px;overflow:auto;background:rgba(0,0,0,.45);border:1px solid var(--line);border-radius:12px;padding:10px;font-size:11px;font-family:var(--mono);white-space:pre-wrap;word-break:break-all;margin:0}
+
+/* nav */
+nav.tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--safe-b));z-index:30;display:flex;gap:4px;padding:6px;border-radius:24px;
+  width:min(520px,calc(100% - 24px))}
+nav.tabs button{flex:1;border:0;background:transparent;border-radius:18px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--mute);font-size:11px;font-weight:650;min-height:54px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--text);background:rgba(255,255,255,.06)}
+nav.tabs button.on svg{color:var(--amber);filter:drop-shadow(0 0 8px rgba(255,210,63,.7))}
+nav.tabs button.add{color:#1a1200}
+nav.tabs button.add .plus{width:46px;height:46px;border-radius:16px;margin-top:-2px;display:grid;place-items:center;background:linear-gradient(135deg,var(--amber),#ffb000);box-shadow:0 0 22px rgba(255,210,63,.5)}
+
+/* sheet + modal */
+.scrim{position:fixed;inset:0;background:rgba(2,3,10,.62);z-index:50;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:fade .18s}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:51;max-height:92vh;overflow:auto;padding:10px 18px calc(22px + var(--safe-b));border-radius:24px 24px 0 0;
+  max-width:760px;margin:0 auto;animation:up .22s cubic-bezier(.2,.8,.2,1);background:rgba(14,17,36,.92)}
+.sheet .grab{width:44px;height:5px;border-radius:9px;background:var(--line2);margin:4px auto 14px}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+@keyframes fade{from{opacity:0}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + var(--safe-b));z-index:80;padding:12px 16px;border-radius:14px;max-width:calc(100% - 32px);font-size:14px;animation:up .2s}
+.toast.err{border-color:rgba(255,90,110,.6)}
+.launch{position:fixed;inset:0;z-index:90;display:grid;place-items:center;text-align:center;padding:24px;background:radial-gradient(600px 400px at 50% 40%,rgba(63,240,255,.15),transparent),rgba(3,4,12,.94)}
+.ring{width:110px;height:110px;border-radius:50%;margin:0 auto 22px;border:3px solid rgba(63,240,255,.15);border-top-color:var(--cyan);border-right-color:var(--amber);animation:spin 1s linear infinite;box-shadow:0 0 40px rgba(63,240,255,.25)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.steps{margin:18px auto 0;text-align:left;display:inline-block}
+.steps div{padding:5px 0;color:var(--mute);font-size:14px}
+.steps div.on{color:var(--text)}
+.steps div.ok{color:var(--green)}
+#frame{position:fixed;inset:0;z-index:95;background:#000}
+#frame iframe{border:0;width:100%;height:100%}
+#frame .back{position:fixed;top:calc(10px + var(--safe-t));left:10px;z-index:96;opacity:.55}
+#frame .back:active{opacity:1}
+
+/* auth */
+.auth{max-width:420px;margin:12vh auto 0;padding:26px}
+.auth .logo{width:64px;height:64px;border-radius:20px;margin:0 auto 18px}
+.auth .logo svg{width:36px;height:36px}
+.center{text-align:center}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.kv:last-child{border-bottom:0}
+.kv b{font-family:var(--mono);font-weight:600;font-size:13px;word-break:break-all;text-align:right}
+details.acc{margin-bottom:10px}
+details.acc>summary{list-style:none;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;font-weight:700}
+details.acc>summary::-webkit-details-marker{display:none}
+details.acc>summary::after{content:"›";margin-left:auto;color:var(--dim);font-size:22px;transition:transform .2s}
+details.acc[open]>summary::after{transform:rotate(90deg)}
+details.acc .body{padding:0 16px 16px}
+.browser{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:10px}
+.browser div{padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:10px;align-items:center;font-size:14px;word-break:break-all}
+.browser div:active{background:rgba(255,255,255,.05)}
+.pill{font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--line2);color:var(--dim)}
+</style>
+<style>
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#0a0b14;flex:none;font-size:15px;cursor:pointer;box-shadow:0 0 14px rgba(255,255,255,.12)}
+.game.dim .art,.game.dim .gen{filter:grayscale(.75) brightness(.55)}
+.game .getbtn{position:absolute;top:8px;right:8px;font-size:10px;font-weight:800;padding:4px 7px;border-radius:7px;background:rgba(63,240,255,.2);border:1px solid rgba(63,240,255,.6);color:var(--cyan);letter-spacing:.06em}
+.game .prog{position:absolute;left:10px;right:10px;bottom:50px}
+.badge.steam{color:#9ad1ff;border-color:rgba(102,192,244,.6)}
+.badge.epic{color:#fff;border-color:rgba(255,255,255,.5)}
+.badge.sys{color:var(--green);border-color:rgba(77,255,160,.5)}
+.banner{display:flex;gap:12px;align-items:center;padding:14px 16px;margin:14px 0;border-color:rgba(63,240,255,.45)!important;box-shadow:0 0 30px rgba(63,240,255,.12)}
+.banner .pulse{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 0 rgba(63,240,255,.7);animation:pulse 1.6s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 10px rgba(63,240,255,0)}100%{box-shadow:0 0 0 0 rgba(63,240,255,0)}}
+.urow{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.urow:last-child{border-bottom:0}
+.code{font-family:var(--mono);font-size:18px;letter-spacing:.12em;color:var(--amber)}
+.section-title{display:flex;align-items:center;gap:10px;margin:20px 2px 10px}
+.section-title h3{margin:0;font-size:15px}
+.section-title .sp{flex:1}
+.store-logo{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-weight:900;font-size:9.5px;letter-spacing:.04em;flex:none;border:1px solid var(--line2)}
+.authtabs{margin:16px 0 4px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="layer"></div>
+<script>
+"use strict";
+(() => {
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtBytes = n => { if (!n && n !== 0) return "—"; const u = ["B","KB","MB","GB","TB"]; let i = 0; while (n >= 1024 && i < 4) { n /= 1024; i++; } return (i ? n.toFixed(1) : n) + " " + u[i]; };
+const fmtUp = s => { if (!s) return "—"; const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return d ? d + "d " + h + "h" : h ? h + "h " + m + "m" : m + "m"; };
+const ago = t => { if (!t) return ""; const s = Date.now() / 1000 - t; return s < 90 ? "just now" : s < 3600 ? Math.round(s / 60) + " min ago" : s < 86400 ? Math.round(s / 3600) + " h ago" : Math.round(s / 86400) + " d ago"; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const IN_APP = !!window.BulbNative || /BulbApp/.test(navigator.userAgent);
+
+const BULB = `<svg viewBox="0 0 24 24" fill="none" stroke="#ffd23f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z"/><path d="M12 7l-1.5 3h3L12 13" stroke="#3ff0ff"/></svg>`;
+const ICON = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  lib: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="#1a1200" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  me: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  admin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>'
+};
+const GRADS = [["#ff3fa4","#6b2cff"],["#3ff0ff","#2457ff"],["#ffd23f","#ff5a1f"],["#4dffa0","#0a8f8f"],["#b05cff","#ff3fa4"],["#ff8a3f","#ff3f5e"],["#3fa4ff","#3ff0c8"]];
+const hashStr = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
+const initials = t => String(t).replace(/[^\p{L}\p{N} ]/gu, "").split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "?";
+const SHADERS = ["", "crt-easymode.glslp", "crt-geom.glslp", "crt-aperture.glslp", "crt-mattias.glslp", "2xScaleHQ.glslp", "4xScaleHQ.glslp"];
+const FF = ["1.5","2.0","3.0","4.0","5.0","8.0","unlimited"];
+const EXT = { nes:["nes","fds","unf","unif"], snes:["sfc","smc","fig","swc","bs"], n64:["z64","n64","v64"], gb:["gb","gbc","sgb"], gba:["gba"], nds:["nds","dsi"], "3ds":["3ds","cci","cxi","3dsx","app"], vb:["vb","vboy"], psx:["cue","chd","pbp","m3u"], psp:["cso"], segaMD:["md","gen","smd"], segaMS:["sms"], segaGG:["gg"] };
+const guessSys = name => { const ext = (name.split(".").pop() || "").toLowerCase(); return Object.keys(EXT).find(k => EXT[k].includes(ext)) || ""; };
+
+// ---------------------------------------------------------------------------
+async function api(path, opts = {}) {
+  const o = { method: opts.method || (opts.body !== undefined ? "POST" : "GET"), headers: {}, credentials: "same-origin" };
+  if (opts.body !== undefined) { o.body = JSON.stringify(opts.body); o.headers["Content-Type"] = "application/json"; }
+  const r = await fetch(path, o);
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (r.status === 401 && !path.startsWith("/api/auth")) { S.user = null; render(); throw new Error(j.error || "Sign in first"); }
+  if (!r.ok) { const e = new Error(j.error || ("Error " + r.status)); e.status = r.status; e.data = j; throw e; }
+  return j;
+}
+function upload(url, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open("PUT", url);
+    x.upload.onprogress = e => e.lengthComputable && onProgress && onProgress(e.loaded / e.total);
+    x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText); } catch (e) {} x.status < 300 ? resolve(j) : reject(new Error(j.error || ("Upload failed (" + x.status + ")"))); };
+    x.onerror = () => reject(new Error("Upload failed — connection dropped."));
+    x.send(file);
+  });
+}
+
+const S = {
+  ready: false, setup: false, signup: "invite", name: "Bulb", user: null,
+  tab: "home", library: [], systemNames: {}, sys: null, systems: null, devices: null,
+  filter: "all", sysFilter: "", query: "", uploads: [], shareUploads: false,
+  admin: { users: null, invites: null, settings: null, storage: null },
+  joinCode: "", authMode: "login"
+};
+const isAdmin = () => S.user && (S.user.role === "owner" || S.user.role === "admin");
+const tabs = () => ["home", "library", "add", "me"].concat(isAdmin() ? ["admin"] : []);
+
+function toast(msg, err) {
+  const t = document.createElement("div");
+  t.className = "toast glass" + (err ? " err" : "");
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), err ? 5500 : 2800);
+}
+const fail = e => toast(e.message || String(e), true);
+
+// ---------------------------------------------------------------------------
+async function loadAll() {
+  const lib = await api("/api/library");
+  S.library = lib.games; S.systemNames = lib.systems;
+  render();
+  loadSys();
+  if (isAdmin()) loadAdmin().catch(() => {});
+}
+async function loadSys() { try { S.sys = await api("/api/system"); render(); } catch (e) {} }
+async function refreshLibrary() { const lib = await api("/api/library"); S.library = lib.games; render(); }
+async function loadSystems() { S.systems = await api("/api/systems"); render(); }
+async function loadDevices() { S.devices = (await api("/api/me/devices")).devices; render(); }
+async function loadAdmin() {
+  const [u, i, s, st] = await Promise.all([api("/api/admin/users"), api("/api/admin/invites"), api("/api/admin/settings"), api("/api/admin/storage")]);
+  S.admin.users = u.users; S.admin.invites = i.invites; S.admin.settings = s; S.admin.storage = st; render();
+}
+// ---------------------------------------------------------------------------
+function render() {
+  const app = $("#app");
+  if (!S.ready) { app.innerHTML = ""; return; }
+  if (!S.user) { app.innerHTML = authView(); bindAuth(); removeNav(); return; }
+  if (!tabs().includes(S.tab)) S.tab = "home";
+  const scroll = window.scrollY;
+  const views = { home: [homeView, bindHome], library: [libraryView, bindLibrary], add: [addView, bindAdd], me: [meView, bindMe], admin: [adminView, bindAdmin] };
+  const [v, b] = views[S.tab];
+  app.innerHTML = header() + v();
+  bindCommon(); b(); nav();
+  window.scrollTo(0, scroll);
+}
+function go(tab) {
+  S.tab = tab; history.replaceState(null, "", "#" + tab); window.scrollTo(0, 0); render();
+  if (tab === "me") { if (!S.systems) loadSystems().catch(fail); loadDevices().catch(fail); }
+  if (tab === "admin") loadAdmin().catch(fail);
+}
+function avatar(u, size) {
+  const s = size || 38;
+  return `<div class="avatar" style="width:${s}px;height:${s}px;background:${esc(u.color || "#ffd23f")}">${esc(initials(u.display || u.username))}</div>`;
+}
+function header() {
+  return `<div class="top">
+    <div class="logo">${BULB}</div>
+    <div class="brand">${esc(S.name)}<small>${esc(S.user.display)}${S.user.role !== "user" ? " · " + esc(S.user.role) : ""}</small></div>
+    <div class="sp"></div>
+    <span class="chip"><span class="dot ${S.sys ? "on" : ""}"></span>bulb.local</span>
+    <span data-go="me">${avatar(S.user, 36)}</span>
+  </div>`;
+}
+function nav() {
+  let n = $("nav.tabs");
+  if (!n) { n = document.createElement("nav"); n.className = "tabs glass"; document.body.appendChild(n); }
+  const items = [["home", "Home", ICON.home], ["library", "Library", ICON.lib], ["add", "", ""], ["me", "Me", ICON.me]];
+  if (isAdmin()) items.push(["admin", "Admin", ICON.admin]);
+  n.innerHTML = items.map(([id, label, ic]) => id === "add"
+    ? `<button class="add ${S.tab === "add" ? "on" : ""}" data-tab="add" aria-label="Add games"><span class="plus">${ICON.plus}</span></button>`
+    : `<button class="${S.tab === id ? "on" : ""}" data-tab="${id}">${ic}<span>${label}</span></button>`).join("");
+  $$("button", n).forEach(b => b.onclick = () => go(b.dataset.tab));
+}
+function removeNav() { const n = $("nav.tabs"); if (n) n.remove(); }
+function bindCommon() {
+  $$("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
+  $$("[data-game]").forEach(b => b.onclick = () => gameSheet(b.dataset.game));
+}
+
+// ---------------------------------------------------------------------------
+// AUTH
+// ---------------------------------------------------------------------------
+function authView() {
+  if (!S.setup) return `<div class="auth glass">
+    <div class="logo" style="margin:0 auto 18px">${BULB}</div>
+    <h1 class="center">Set up your Bulb cloud</h1>
+    <p class="sub center">You're the first one here, so this account becomes the <b>owner</b>. You'll invite family and friends next.</p>
+    <form id="authf">
+      <label class="f"><span>CLOUD NAME</span><input class="in" name="name" value="Bulb" maxlength="40"></label>
+      <label class="f"><span>YOUR NAME</span><input class="in" name="display" placeholder="Jay" maxlength="40"></label>
+      <label class="f"><span>USERNAME</span><input class="in" name="username" autocapitalize="off" autocomplete="username" required minlength="3"></label>
+      <label class="f"><span>PASSWORD</span><input class="in" name="password" type="password" autocomplete="new-password" required minlength="6"></label>
+      <button class="btn primary block" style="margin-top:18px">Create my cloud</button>
+    </form></div>`;
+  const canSignup = S.signup !== "closed" || S.joinCode;
+  const mode = canSignup ? S.authMode : "login";
+  return `<div class="auth glass">
+    <div class="logo" style="margin:0 auto 18px">${BULB}</div>
+    <h1 class="center">${esc(S.name)}</h1>
+    <p class="sub center">${mode === "login" ? "Sign in to your game cloud." : S.signup === "open" ? "Create your account." : "Join with the invite code you were given."}</p>
+    ${canSignup ? `<div class="seg authtabs"><button data-am="login" class="${mode === "login" ? "on" : ""}">Sign in</button><button data-am="signup" class="${mode === "signup" ? "on" : ""}">Create account</button></div>` : ""}
+    <form id="authf">
+      ${mode === "signup" ? `<label class="f"><span>YOUR NAME</span><input class="in" name="display" maxlength="40"></label>` : ""}
+      <label class="f"><span>USERNAME</span><input class="in" name="username" autocapitalize="off" autocomplete="username" required></label>
+      <label class="f"><span>PASSWORD</span><input class="in" name="password" type="password" autocomplete="${mode === "login" ? "current-password" : "new-password"}" required></label>
+      ${mode === "signup" && S.signup !== "open" ? `<label class="f"><span>INVITE CODE</span><input class="in" name="invite" value="${esc(S.joinCode)}" placeholder="AB12-CD34-EF56" autocapitalize="characters"></label>` : ""}
+      <button class="btn primary block" style="margin-top:18px">${mode === "login" ? "Sign in" : "Create account"}</button>
+    </form>
+    ${IN_APP && window.BulbNative ? `<button class="btn ghost block" style="margin-top:10px" id="sw-cloud">Connect to a different cloud</button>` : ""}
+  </div>`;
+}
+function bindAuth() {
+  $$("[data-am]").forEach(b => b.onclick = () => { S.authMode = b.dataset.am; render(); });
+  const sw = $("#sw-cloud"); if (sw) sw.onclick = () => window.BulbNative.switchServer();
+  $("#authf").onsubmit = async e => {
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target));
+    const action = !S.setup ? "setup" : S.authMode === "signup" && (S.signup !== "closed" || S.joinCode) ? "signup" : "login";
+    try {
+      const r = await api("/api/auth/" + action, { body: fd });
+      S.user = r.user; S.setup = true; S.tab = "home";
+      if (action === "setup") S.name = fd.name || S.name;
+      history.replaceState(null, "", "#home");
+      await loadAll();
+      if (action === "setup") toast("Your cloud is ready. Invite people from Admin.");
+    } catch (err) { fail(err); }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// HOME
+// ---------------------------------------------------------------------------
+function greet() { const h = new Date().getHours(); return h < 5 ? "Late night session" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; }
+function homeView() {
+  const s = S.sys || {};
+  const used = s.disk ? 1 - s.disk.free / s.disk.total : 0;
+  const mem = s.mem ? 1 - s.mem.free / s.mem.total : 0;
+  const count = k => S.library.filter(g => g.kind === k).length;
+  const recent = [...S.library].sort((a, b) => (b.myLastPlayed || b.added || 0) - (a.myLastPlayed || a.added || 0)).slice(0, 12).map(toCard);
+  const setup = [];
+  if (!S.library.length) setup.push(["Upload your first game", "PC games, retro ROMs or HTML5 games. They live here and play on your phone.", "add", "Upload"]);
+  if (isAdmin() && S.admin.users && S.admin.users.length < 2) setup.push(["Invite family & friends", "Create an invite link. Everyone gets their own library and saves.", "admin", "Invite"]);
+  const addr = location.host || "bulb.local";
+  return `
+    <h1>${greet()}, ${esc(S.user.display)}.</h1>
+    <div class="sub">${esc(S.name)} · ${S.library.length} game${S.library.length === 1 ? "" : "s"} in the cloud</div>
+    ${setup.length ? `<h2>Get started</h2><div style="display:grid;gap:10px">${setup.map(([t, d, g2, b]) => `<div class="glass card row"><div class="grow"><h3>${t}</h3><div class="sub">${d}</div></div><button class="btn primary sm" data-go="${g2}">${b}</button></div>`).join("")}</div>` : ""}
+    ${IN_APP ? "" : `<h2>Play on your phone</h2>
+    <div class="glass card row"><div class="ic" style="font-size:34px">📱</div><div class="grow"><h3>Open the Bulb app</h3>
+      <div class="sub">Sign in to <b style="color:var(--amber)">${esc(addr)}</b> with your username. PC games download to the phone and run there with Wine; retro and web games play right away.</div></div></div>`}
+    <h2>${S.library.some(g => g.myLastPlayed) ? "Jump back in" : "Recently added"}</h2>
+    ${recent.length ? `<div class="recent">${recent.map(gameCard).join("")}</div>` : `<div class="glass empty"><div class="sub">No games yet. Tap <b style="color:var(--amber)">+</b> to upload.</div></div>`}
+    <h2>Your cloud</h2>
+    <div class="grid4">
+      <div class="glass stat"><span class="k">Storage</span><span class="v">${s.disk ? fmtBytes(s.disk.free) : "—"}</span><div class="bar"><i style="width:${(used * 100).toFixed(0)}%"></i></div><span class="sub">free of ${s.disk ? fmtBytes(s.disk.total) : "—"}</span></div>
+      <div class="glass stat"><span class="k">Games</span><span class="v">${S.library.length}</span><span class="sub">${count("pc")} PC · ${count("rom")} retro · ${count("html")} web</span></div>
+      <div class="glass stat"><span class="k">Memory</span><span class="v">${s.mem ? (mem * 100).toFixed(0) + "%" : "—"}</span><div class="bar"><i style="width:${(mem * 100).toFixed(0)}%"></i></div><span class="sub">${s.mem ? fmtBytes(s.mem.total) + " total" : ""}</span></div>
+      <div class="glass stat"><span class="k">Uptime</span><span class="v">${fmtUp(s.uptime)}</span><span class="sub">Bulb OS ${esc(s.version || "")}</span></div>
+    </div>`;
+}
+function bindHome() {}
+// ---------------------------------------------------------------------------
+// LIBRARY
+// ---------------------------------------------------------------------------
+function toCard(g) { return { ...g, kind: g.kind === "pc" ? "upload" : g.kind, lastPlayed: g.myLastPlayed, installed: true }; }
+function allGames() { return S.library.map(toCard); }
+function gameCard(g) {
+  const [a, b] = GRADS[hashStr(g.title) % GRADS.length];
+  const art = g.cover ? `<div class="art" style="background-image:url('/api/games/${g.id}/cover?v=${g.cover}')"></div>` : "";
+  const gen = `<div class="gen" style="background:linear-gradient(150deg,${a},${b})">${esc(initials(g.title))}</div>`;
+  const badge = { upload: `<span class="badge pc">PC</span>`, html: `<span class="badge web">Web</span>`, rom: `<span class="badge rom">${esc(g.system)}</span>` }[g.kind];
+  const sub = { upload: "PC · plays in the Bulb app", html: "HTML5 · plays anywhere", rom: esc(S.systemNames[g.system] || g.system) }[g.kind];
+  return `<div class="game" data-game="${esc(g.id)}">${gen}${art}<div class="shade"></div>${badge}
+    <div class="meta"><div class="t">${esc(g.title)}</div><div class="s">${sub}</div></div></div>`;
+}
+const GROUP = { upload: "pc", rom: "rom", html: "html" };
+function filtered() {
+  const q = S.query.toLowerCase();
+  let games = allGames();
+  if (S.filter !== "all") games = games.filter(g => GROUP[g.kind] === S.filter);
+  if (S.sysFilter) games = games.filter(g => g.system === S.sysFilter || g.kind === S.sysFilter);
+  if (q) games = games.filter(g => g.title.toLowerCase().includes(q));
+  return games;
+}
+function gridHtml() {
+  const games = filtered();
+  if (!games.length) return `<div class="glass empty"><div class="big">🕹️</div><h3>${S.query ? "No matches" : "Nothing here yet"}</h3><div class="sub">Tap + to upload games to ${esc(S.name)}.</div></div>`;
+  return `<div class="games">${games.map(gameCard).join("")}</div>`;
+}
+function libraryView() {
+  const chips = S.filter === "rom" ? [["", "All consoles"], ...[...new Set(S.library.filter(g => g.kind === "rom").map(g => g.system))].map(s => [s, S.systemNames[s] || s])] : [];
+  return `
+    <h1>Library</h1>
+    <div class="tools"><input class="in grow" id="q" placeholder="Search the cloud" value="${esc(S.query)}" type="search"></div>
+    <div class="seg" id="kinds">${[["all","All"],["pc","PC"],["rom","Retro"],["html","Web"]].filter(([k]) => k !== "pc" || S.user.canPC).map(([k,l]) => `<button data-k="${k}" class="${S.filter === k ? "on" : ""}">${l}</button>`).join("")}</div>
+    ${chips.length > 2 ? `<div class="chips" style="margin-top:12px">${chips.map(([k, l]) => `<span class="chip ${S.sysFilter === k ? "on" : ""}" data-s="${esc(k)}">${esc(l)}</span>`).join("")}</div>` : ""}
+    <div style="height:12px"></div>
+    <div id="gridwrap">${gridHtml()}</div>`;
+}
+function bindLibrary() {
+  const q = $("#q");
+  q.oninput = () => { S.query = q.value; $("#gridwrap").innerHTML = gridHtml(); bindCommon(); };
+  $$("#kinds button").forEach(b => b.onclick = () => { S.filter = b.dataset.k; S.sysFilter = ""; render(); });
+  $$("[data-s]").forEach(c => c.onclick = () => { S.sysFilter = c.dataset.s; render(); });
+}
+// ---------------------------------------------------------------------------
+// sheets
+// ---------------------------------------------------------------------------
+function sheet(html, onMount) {
+  const layer = $("#layer");
+  layer.innerHTML = `<div class="scrim"></div><div class="sheet glass"><div class="grab"></div>${html}</div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $(".scrim", layer).onclick = close;
+  let y0 = null; const sh = $(".sheet", layer);
+  sh.addEventListener("touchstart", e => { if (sh.scrollTop <= 0) y0 = e.touches[0].clientY; }, { passive: true });
+  sh.addEventListener("touchmove", e => { if (y0 != null && e.touches[0].clientY - y0 > 90) { y0 = null; close(); } }, { passive: true });
+  $$("[data-close]", layer).forEach(b => b.onclick = close);
+  onMount && onMount(sh, close);
+  return close;
+}
+const findGame = id => allGames().find(g => g.id === id);
+const bigBtn = (label, id, cls) => `<button class="btn ${cls || "primary"} block" style="margin-top:16px;min-height:54px;font-size:17px" id="${id}">${label}</button>`;
+
+function gameSheet(id) {
+  const g = findGame(id);
+  if (!g) return;
+  if (g.kind === "upload") return uploadSheet(g);
+  const isRom = g.kind === "rom";
+  sheet(`
+    <h1 style="font-size:22px">${esc(g.title)}</h1>
+    <div class="sub">${isRom ? esc(S.systemNames[g.system]) + " · " + esc(g.file) : "Web game"} · ${fmtBytes(g.size)}${g.mine ? "" : " · shared with you"}</div>
+    ${bigBtn("▶ Play", "gs-play")}
+    ${isRom && g.saves && Object.keys(g.saves).length ? `<div class="sub" style="margin-top:10px">☁ Your cloud saves: ${g.saves.state ? "state " + ago(g.saves.state) : ""}${g.saves.state && g.saves.sram ? " · " : ""}${g.saves.sram ? "in-game save " + ago(g.saves.sram) : ""}</div>` : ""}
+    ${g.canEdit ? `<h2>Details</h2>
+      <label class="f"><span>TITLE</span><input class="in" id="gs-title" value="${esc(g.title)}"></label>
+      ${isRom ? `<label class="f"><span>CONSOLE</span><select class="in" id="gs-sys">${Object.entries(S.systemNames).map(([k, v]) => `<option value="${k}" ${k === g.system ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></label>`
+        : `<label class="f"><span>ORIENTATION</span><select class="in" id="gs-or">${["any","landscape","portrait"].map(o => `<option ${g.orientation === o ? "selected" : ""}>${o}</option>`).join("")}</select></label>`}
+      <div class="toggle"><div><div>Share with everyone on ${esc(S.name)}</div><div class="sub">Others get their own saves</div></div><label class="sw"><input type="checkbox" id="gs-share" ${g.shared ? "checked" : ""}><i></i></label></div>
+      <div class="row" style="margin-top:12px"><button class="btn grow" id="gs-save">Save</button><label class="btn grow">🖼 Cover<input type="file" accept="image/*" id="gs-cover" hidden></label></div>` : ""}
+    ${isRom ? `<details class="acc glass" style="margin-top:16px"><summary>🎛 My emulator settings for this game</summary><div class="body" id="gs-emu"><div class="sub">Loading...</div></div></details>` : ""}
+    <div class="row" style="margin-top:16px">${isRom ? `<button class="btn sm danger" id="gs-wipe">Delete my saves</button>` : ""}<div class="grow"></div>${g.canEdit ? `<button class="btn sm danger" id="gs-del">Delete game</button>` : ""}</div>`, (sh, close) => {
+    $("#gs-play", sh).onclick = () => { close(); playLocal(g); };
+    const sv = $("#gs-save", sh);
+    if (sv) sv.onclick = async () => {
+      try {
+        const body = { title: $("#gs-title", sh).value, shared: $("#gs-share", sh).checked };
+        if (isRom) body.system = $("#gs-sys", sh).value; else body.orientation = $("#gs-or", sh).value;
+        await api(`/api/games/${g.id}`, { method: "PATCH", body }); toast("Saved."); close(); refreshLibrary();
+      } catch (e) { fail(e); }
+    };
+    const cv = $("#gs-cover", sh);
+    if (cv) cv.onchange = async e => { const f = e.target.files[0]; if (!f) return; try { await upload(`/api/upload/cover?id=${g.id}`, await toPng(f, 600)); toast("Cover updated."); close(); refreshLibrary(); } catch (err) { fail(err); } };
+    const del = $("#gs-del", sh);
+    if (del) del.onclick = async () => { if (!confirm(`Delete "${g.title}" for everyone?`)) return; try { await api(`/api/games/${g.id}`, { method: "DELETE" }); close(); toast("Deleted."); refreshLibrary(); } catch (e) { fail(e); } };
+    const wipe = $("#gs-wipe", sh);
+    if (wipe) wipe.onclick = async () => { if (!confirm("Delete your cloud saves for this game?")) return; try { await api(`/api/saves/${g.id}/state`, { method: "DELETE" }); await api(`/api/saves/${g.id}/sram`, { method: "DELETE" }); toast("Saves deleted."); refreshLibrary(); } catch (e) { fail(e); } };
+    if (isRom) {
+      const det = $("details", sh);
+      det.addEventListener("toggle", async () => {
+        if (!det.open || det.dataset.loaded) return;
+        det.dataset.loaded = 1;
+        try {
+          if (!S.systems) S.systems = await api("/api/systems");
+          const sys = S.systems[g.system];
+          const eff = Object.assign({}, sys.settings, g.overrides || {});
+          const box = $("#gs-emu", sh);
+          box.innerHTML = emuForm(g.system, eff, true) + `<div class="row" style="margin-top:14px"><button class="btn grow primary" id="ge-save">Save for this game</button><button class="btn grow ghost" id="ge-reset">Use my console defaults</button></div>`;
+          bindEmuForm(box);
+          $("#ge-save", box).onclick = async () => {
+            try {
+              const vals = readEmuForm(box), ov = {};
+              for (const [k, v] of Object.entries(vals)) if (JSON.stringify(v) !== JSON.stringify(sys.settings[k])) ov[k] = v;
+              await api(`/api/games/${g.id}/overrides`, { method: "PUT", body: ov }); toast("Saved for this game."); refreshLibrary();
+            } catch (e) { fail(e); }
+          };
+          $("#ge-reset", box).onclick = async () => { try { await api(`/api/games/${g.id}/overrides`, { method: "PUT", body: {} }); toast("Using your console defaults."); close(); refreshLibrary(); } catch (e) { fail(e); } };
+        } catch (e) { fail(e); }
+      });
+    }
+  });
+}
+
+let pcPoll = null;
+function uploadSheet(g) {
+  sheet(`
+    <h1 style="font-size:22px">${esc(g.title)}</h1>
+    <div class="sub">PC game · ${fmtBytes(g.size)}${g.mine ? "" : " · added by someone else"}</div>
+    ${IN_APP && window.BulbNative && window.BulbNative.openCloudGame ? bigBtn("⬇ Download & play", "up-get") :
+      `<div class="glass card" style="margin-top:14px"><b>📱 Plays in the Bulb app</b><div class="sub">Open the Bulb app on your phone → Bulb Cloud → ${esc(g.title)} → Download. It runs on the phone with Wine, so it works offline once it's downloaded.</div></div>`}
+    ${!g.exe ? `<div class="glass card" style="margin-top:10px"><b>Pick the game's .exe</b><div class="sub">${g.installer ? "This upload is an installer: the app runs it first, then you pick the installed game." : "Bulb couldn't tell which .exe starts the game."}</div></div>` : ""}
+    ${g.canEdit ? `<h2>Setup</h2>
+      <label class="f"><span>TITLE</span><input class="in" id="up-title" value="${esc(g.title)}"></label>
+      <label class="f"><span>GAME .EXE</span><select class="in" id="up-exe"><option value="">Loading…</option></select></label>
+      <label class="f"><span>INSTALLER .EXE (OPTIONAL)</span><select class="in" id="up-installer"><option value="">Loading…</option></select></label>
+      <label class="f"><span>LAUNCH OPTIONS</span><input class="in" id="up-args" value="${esc(g.args || "")}" placeholder="-windowed -nointro"></label>
+      <div class="row" style="margin-top:12px"><button class="btn grow primary" id="up-save">Save</button><label class="btn grow">🖼 Cover<input type="file" accept="image/*" id="up-cover" hidden></label></div>
+      <div class="row" style="margin-top:16px"><div class="grow"></div><button class="btn sm danger" id="up-del">Delete from the cloud</button></div>` : ""}`, async (sh, close) => {
+    const get = $("#up-get", sh); if (get) get.onclick = () => { close(); window.BulbNative.openCloudGame(g.id); };
+    if (!g.canEdit) return;
+    try {
+      const { exes } = await api(`/api/games/${g.id}/exes`);
+      const opts = cur => `<option value="">— none —</option>` + exes.map(e => `<option value="${esc(e.path)}" ${e.path === cur ? "selected" : ""}>${esc(e.path.replace(/^files\//, ""))}${e.likely ? "" : " (helper?)"} · ${fmtBytes(e.size)}</option>`).join("");
+      $("#up-exe", sh).innerHTML = opts(g.exe); $("#up-installer", sh).innerHTML = opts(g.installer);
+    } catch (e) { fail(e); }
+    $("#up-save", sh).onclick = async () => {
+      try { await api(`/api/games/${g.id}`, { method: "PATCH", body: { title: $("#up-title", sh).value, exe: $("#up-exe", sh).value, installer: $("#up-installer", sh).value, args: $("#up-args", sh).value } }); toast("Saved."); close(); refreshLibrary(); } catch (e) { fail(e); }
+    };
+    $("#up-cover", sh).onchange = async e => { const f = e.target.files[0]; if (!f) return; try { await upload(`/api/upload/cover?id=${g.id}`, await toPng(f, 600)); toast("Cover updated."); close(); refreshLibrary(); } catch (err) { fail(err); } };
+    $("#up-del", sh).onclick = async () => { if (!confirm(`Delete ${g.title} from the cloud? Copies already downloaded to phones stay there.`)) return; try { await api(`/api/games/${g.id}`, { method: "DELETE" }); close(); toast("Deleted."); refreshLibrary(); } catch (e) { fail(e); } };
+  });
+}
+function toPng(file, max) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => b ? resolve(b) : reject(new Error("Couldn't convert image")), "image/png");
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => reject(new Error("That file isn't an image the browser can read."));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// PLAY
+// ---------------------------------------------------------------------------
+async function playLocal(g) {
+  if (g.kind === "rom") { location.href = "/play?id=" + encodeURIComponent(g.id); return; }
+  try {
+    const p = await api(`/api/games/${g.id}/play`);
+    const f = document.createElement("div");
+    f.id = "frame";
+    f.innerHTML = `<iframe src="${esc(p.url)}" allow="fullscreen; gamepad; autoplay; accelerometer; gyroscope" allowfullscreen></iframe><button class="btn sm glass back">✕ Exit</button>`;
+    document.body.appendChild(f);
+    const exit = () => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); try { screen.orientation.unlock(); } catch (e) {} if (window.BulbNative) window.BulbNative.setOrientation("any"); f.remove(); refreshLibrary(); };
+    $(".back", f).onclick = exit;
+    if (window.BulbNative) window.BulbNative.setOrientation(p.orientation || "any");
+    try { await f.requestFullscreen({ navigationUI: "hide" }); if (p.orientation !== "any") await screen.orientation.lock(p.orientation); } catch (e) {}
+  } catch (e) { fail(e); }
+}
+
+// ---------------------------------------------------------------------------
+// ADD
+// ---------------------------------------------------------------------------
+function addView() {
+  return `
+    <h1>Upload games</h1>
+    <div class="sub">Everything you upload lives on ${esc(S.name)}. PC games download to phones through the Bulb app; retro and web games also play right here in the browser.</div>
+    ${S.user.canUpload ? `
+    <div class="toggle glass card" style="margin-top:14px"><div><div>Share my retro &amp; web uploads with everyone</div><div class="sub">PC games are always shared with people allowed to play PC games</div></div><label class="sw"><input type="checkbox" id="add-share" ${S.shareUploads ? "checked" : ""}><i></i></label></div>
+    <h2>Choose</h2>
+    ${S.user.canPC ? `<label class="glass addopt"><div class="ic" style="background:rgba(63,240,255,.12)">🖥️</div><div class="grow"><h3>PC game</h3><div class="sub">A .zip of the game folder (best), a portable .exe, or an installer (GOG etc.).</div></div><input type="file" id="add-pc" accept=".zip,.exe,.msi" hidden></label>` : ""}
+    <label class="glass addopt"><div class="ic" style="background:rgba(255,210,63,.12)">👾</div><div class="grow"><h3>Retro ROMs</h3><div class="sub">NES, SNES, N64, Game Boy, GBA, DS, 3DS (+ PS1, PSP, Sega). Pick several at once.</div></div><input type="file" id="add-rom" multiple hidden></label>
+    <label class="glass addopt"><div class="ic" style="background:rgba(255,63,164,.12)">🌐</div><div class="grow"><h3>HTML5 / web game</h3><div class="sub">One .html file, or a .zip of the whole game folder.</div></div><input type="file" id="add-html" accept=".html,.htm,.zip" multiple hidden></label>
+    ${isAdmin() ? `<label class="glass addopt"><div class="ic" style="background:rgba(77,255,160,.1)">🔑</div><div class="grow"><h3>BIOS / system files</h3><div class="sub">Shared by everyone. Optional for most consoles.</div></div><input type="file" id="add-bios" hidden></label>` : ""}` : `<div class="glass card sub" style="margin-top:14px">Your account can't upload games. Ask the owner.</div>`}
+    ${S.uploads.length ? `<h2>Uploads</h2><div class="uploads">${S.uploads.map(u => `<div class="glass u"><div class="row"><div class="grow"><b>${esc(u.name)}</b><div class="sub">${esc(u.status)}</div></div><span class="pill">${u.pct}%</span></div><div class="bar"><i style="width:${u.pct}%"></i></div></div>`).join("")}</div>` : ""}`;
+}
+function bindAdd() {
+  const sh = $("#add-share"); if (sh) sh.onchange = () => { S.shareUploads = sh.checked; };
+  const shared = () => S.shareUploads ? "&shared=1" : "";
+  const pc = $("#add-pc"); if (pc) pc.onchange = e => { const f = e.target.files[0]; e.target.value = ""; if (f) doUpload(f, `/api/upload/pc?name=${encodeURIComponent(f.name)}`, g => { setTimeout(() => uploadSheet({ ...g, kind: "upload" }), 300); }); };
+  const rom = $("#add-rom"); if (rom) rom.onchange = e => { queueRoms([...e.target.files], shared()); e.target.value = ""; };
+  const html = $("#add-html"); if (html) html.onchange = e => { [...e.target.files].forEach(f => doUpload(f, `/api/upload/html?name=${encodeURIComponent(f.name)}${shared()}`)); e.target.value = ""; };
+  const bios = $("#add-bios"); if (bios) bios.onchange = e => { const f = e.target.files[0]; e.target.value = ""; if (f) pickSystem(f.name, "Which console is this BIOS for?", s => doUpload(f, `/api/upload/bios?system=${s}&name=${encodeURIComponent(f.name)}`, () => { S.systems = null; })); };
+}
+function queueRoms(files, shared) {
+  const next = () => {
+    const f = files.shift(); if (!f) return;
+    const s = guessSys(f.name);
+    const send = sys => { doUpload(f, `/api/upload/rom?system=${sys}&name=${encodeURIComponent(f.name)}${shared}`); next(); };
+    s ? send(s) : pickSystem(f.name, "Which console is this game for?", send, next);
+  };
+  next();
+}
+function pickSystem(fname, title, cb, skip) {
+  sheet(`<h1 style="font-size:20px">${esc(title)}</h1><div class="sub">${esc(fname)}</div><div class="grid2" style="margin-top:14px">${Object.entries(S.systemNames).map(([k, v]) => `<button class="btn" data-sys="${k}">${esc(v)}</button>`).join("")}</div><button class="btn ghost block" style="margin-top:12px" data-close>Skip</button>`, (sh, close) => {
+    $$("[data-sys]", sh).forEach(b => b.onclick = () => { close(); cb(b.dataset.sys); });
+    $$("[data-close]", sh).forEach(b => b.addEventListener("click", () => skip && skip()));
+  });
+}
+function doUpload(file, url, after) {
+  const u = { name: file.name, pct: 0, status: "Uploading " + fmtBytes(file.size) };
+  S.uploads.unshift(u); if (S.tab === "add") render();
+  let last = 0;
+  upload(url, file, p => { u.pct = Math.round(p * 100); if (p >= 1) u.status = "Unpacking on the cloud…"; if (Date.now() - last > 300 && S.tab === "add") { last = Date.now(); render(); } })
+    .then(async g => { u.pct = 100; u.status = "Added ✓"; await refreshLibrary(); after && after(g); })
+    .catch(e => { u.status = "Failed: " + e.message; render(); fail(e); });
+}
+
+// ---------------------------------------------------------------------------
+// ME (profile, devices, consoles)
+// ---------------------------------------------------------------------------
+function emuForm(sys, v, perGame) {
+  const info = S.systems[sys];
+  const sel = (id, opts, cur) => `<select class="in" data-e="${id}">${opts.map(([val, lab]) => `<option value="${esc(val)}" ${String(cur) === String(val) ? "selected" : ""}>${esc(lab)}</option>`).join("")}</select>`;
+  const tog = (id, label, cur, hint) => `<div class="toggle"><div><div>${label}</div>${hint ? `<div class="sub">${hint}</div>` : ""}</div><label class="sw"><input type="checkbox" data-e="${id}" ${cur ? "checked" : ""}><i></i></label></div>`;
+  return `
+    <label class="f"><span>EMULATOR CORE</span>${sel("core", [["", "Default (" + info.default_core + ")"], ...info.cores.map(c => [c, c])], v.core)}</label>
+    <label class="f"><span>EMULATORJS CHANNEL</span>${sel("channel", [["", "Auto" + (sys === "3ds" ? " (nightly)" : " (stable)")], ["stable", "Stable"], ["latest", "Latest"], ["nightly", "Nightly"]], v.channel)}</label>
+    <label class="f"><span>SHADER</span>${sel("shader", SHADERS.map(s => [s, s ? s.replace(".glslp", "") : "None (sharp pixels)"]), v.shader)}</label>
+    <label class="f"><span>TOUCH CONTROLS</span>${sel("virtualGamepad", [["auto", "Auto (on for touch screens)"], ["on", "Always on"], ["off", "Off (controller / keyboard)"]], v.virtualGamepad)}</label>
+    <label class="f"><span>FAST-FORWARD SPEED</span>${sel("ffRatio", FF.map(x => [x, x === "unlimited" ? "Unlimited" : x + "×"]), v.ffRatio)}</label>
+    <label class="f"><span>VOLUME · <b data-vol>${Math.round((v.volume || 0) * 100)}%</b></span><input type="range" min="0" max="1" step="0.05" value="${v.volume}" data-e="volume"></label>
+    ${perGame ? "" : `<label class="f"><span>BIOS</span>${sel("bios", [["", info.bios.length ? "None" : "None uploaded"], ...info.bios.map(b => [b, b])], v.bios)}</label>`}
+    <div style="margin-top:8px">
+      ${tog("leftHanded", "Left-handed touch layout", v.leftHanded)}
+      ${tog("showFps", "Show FPS", v.showFps)}
+      ${tog("rewind", "Rewind", v.rewind, "Uses more memory")}
+      ${tog("vsync", "V-Sync", v.vsync)}
+      ${tog("startOnLoaded", "Start right away", v.startOnLoaded)}
+      ${tog("cloudSaves", "Cloud saves", v.cloudSaves, "Your saves follow you to every device")}
+    </div>
+    <label class="f"><span>ADVANCED: EXTRA OPTIONS (JSON)</span><textarea class="in" data-e="extraOptions" placeholder='{"melonds_screen_layout": "Left/Right"}'>${esc(Object.keys(v.extraOptions || {}).length ? JSON.stringify(v.extraOptions, null, 1) : "")}</textarea></label>
+    <div class="sub" style="margin-top:6px">Accent color <input type="color" data-e="color" value="${esc(v.color || "#ffd23f")}" style="vertical-align:middle;border:0;background:none;width:36px;height:28px"></div>`;
+}
+function bindEmuForm(box) { const r = $('[data-e="volume"]', box); if (r) r.oninput = () => $("[data-vol]", box).textContent = Math.round(r.value * 100) + "%"; }
+function readEmuForm(box) {
+  const out = {};
+  $$("[data-e]", box).forEach(el => {
+    const k = el.dataset.e;
+    if (el.type === "checkbox") out[k] = el.checked;
+    else if (el.type === "range") out[k] = parseFloat(el.value);
+    else if (k === "extraOptions") { try { out[k] = el.value.trim() ? JSON.parse(el.value) : {}; } catch (e) { throw new Error("Extra options must be valid JSON."); } }
+    else out[k] = el.value;
+  });
+  return out;
+}
+const COLORS = ["#ffd23f", "#3ff0ff", "#ff3fa4", "#4dffa0", "#b05cff", "#ff8a3f", "#3fa4ff"];
+function meView() {
+  const D = S.devices;
+  return `
+    <h1>Me</h1>
+    <div class="glass card row" style="margin-top:12px">${avatar(S.user, 56)}<div class="grow"><h3>${esc(S.user.display)}</h3><div class="sub">@${esc(S.user.username)} · ${esc(S.user.role)}</div></div></div>
+    <h2>Profile</h2>
+    <div class="glass card">
+      <label class="f"><span>DISPLAY NAME</span><input class="in" id="me-name" value="${esc(S.user.display)}"></label>
+      <div class="row wrap" style="margin-top:12px">${COLORS.map(c => `<button class="avatar" data-col="${c}" style="background:${c};width:34px;height:34px;border:${S.user.color === c ? "3px solid #fff" : "0"}"></button>`).join("")}</div>
+      <button class="btn block" style="margin-top:12px" id="me-save">Save profile</button>
+      <div class="grid2" style="margin-top:14px"><input class="in" id="pw-cur" type="password" placeholder="Current password"><input class="in" id="pw-new" type="password" placeholder="New password"></div>
+      <div class="row" style="margin-top:10px"><button class="btn grow" id="pw-save">Change password</button><button class="btn grow danger" id="logout">Sign out</button></div>
+    </div>
+    <h2>Signed-in devices</h2>
+    <div class="glass card">${D ? D.map(d => `<div class="urow"><div class="ic" style="font-size:22px">${d.kind === "app" ? "📱" : "🌐"}</div><div class="grow"><b>${esc(d.device)}</b>${d.current ? ` <span class="pill">this device</span>` : ""}<div class="sub">last used ${ago(d.used)}</div></div>${d.current ? "" : `<button class="btn sm danger" data-dev="${esc(d.id)}">Sign out</button>`}</div>`).join("") || `<div class="sub">None</div>` : `<div class="sub">Loading…</div>`}</div>
+    <h2>My console settings</h2>
+    <div class="sub" style="margin:0 2px 10px">Used when you play retro games in the browser or the Bulb app.</div>
+    ${S.systems ? Object.entries(S.systems).map(([k, s]) => `<details class="acc glass" data-sysd="${k}"><summary><span class="pill">${esc(k)}</span>${esc(s.name)}</summary><div class="body"></div></details>`).join("") : `<div class="glass card sub">Loading consoles…</div>`}`;
+}
+function bindMe() {
+  let color = S.user.color;
+  $$("[data-col]").forEach(b => b.onclick = () => { color = b.dataset.col; $$("[data-col]").forEach(x => x.style.border = x === b ? "3px solid #fff" : "0"); });
+  $("#me-save").onclick = async () => { try { S.user = await api("/api/me", { method: "PATCH", body: { display: $("#me-name").value, color } }); toast("Saved."); render(); } catch (e) { fail(e); } };
+  $("#pw-save").onclick = async () => { try { await api("/api/me/password", { body: { current: $("#pw-cur").value, new: $("#pw-new").value } }); toast("Password changed. Other devices were signed out."); loadDevices(); } catch (e) { fail(e); } };
+  $("#logout").onclick = async () => { try { await api("/api/auth/logout", { body: {} }); } catch (e) {} S.user = null; render(); };
+  $$("[data-dev]").forEach(b => b.onclick = async () => { try { await api(`/api/me/devices/${b.dataset.dev}`, { method: "DELETE" }); toast("Signed out."); loadDevices(); } catch (e) { fail(e); } });
+  $$("[data-sysd]").forEach(d => d.addEventListener("toggle", () => {
+    if (!d.open || d.dataset.loaded) return;
+    d.dataset.loaded = 1;
+    const sys = d.dataset.sysd, info = S.systems[sys], body = $(".body", d);
+    body.innerHTML = emuForm(sys, info.settings, false) + `<button class="btn primary block" style="margin-top:14px" data-save>Save ${esc(info.name)} settings</button>`;
+    bindEmuForm(body);
+    $("[data-save]", body).onclick = async () => { try { info.settings = await api(`/api/systems/${sys}`, { method: "PUT", body: readEmuForm(body) }); toast(info.name + " saved."); } catch (e) { fail(e); } };
+  }));
+}
+// ---------------------------------------------------------------------------
+// ADMIN
+// ---------------------------------------------------------------------------
+function adminView() {
+  const A = S.admin, s = A.settings, st = A.storage;
+  if (!s) return `<h1>Admin</h1><div class="glass card sub">Loading…</div>`;
+  const inviteLink = code => `${location.origin}/#join=${code}`;
+  const roleSel = u => u.role === "owner" ? `<span class="pill">owner</span>` : `<select class="in" data-urole="${u.id}" style="min-height:36px;padding:6px 8px;width:auto">${["user","admin"].map(r => `<option ${u.role === r ? "selected" : ""}>${r}</option>`).join("")}</select>`;
+  const used = st ? st.total - st.free : 0;
+  const seg = (v, c) => st && st.total ? `<i style="display:inline-block;height:100%;width:${(v / st.total * 100).toFixed(2)}%;background:${c}"></i>` : "";
+  return `
+    <h1>Admin</h1>
+    <div class="sub">Manage ${esc(s.name)}: people, invites, storage and the box itself.</div>
+
+    <h2>People</h2>
+    <div class="glass card">
+      ${(A.users || []).map(u => `<div class="urow">${avatar(u, 40)}<div class="grow"><b>${esc(u.display)}</b> <span class="muted">@${esc(u.username)}</span><div class="sub">${u.disabled ? "⛔ disabled · " : ""}seen ${ago(u.lastSeen)}${u.canPC ? "" : " · no PC games"}${u.canUpload ? "" : " · no uploads"}</div></div>${roleSel(u)}${u.role !== "owner" ? `<button class="btn sm icon-btn" data-uedit="${u.id}">⋯</button>` : ""}</div>`).join("")}
+    </div>
+    <h2>Invites</h2>
+    <div class="glass card">
+      <div class="seg" id="signup-mode">${[["invite","Invite only"],["open","Anyone on the Wi-Fi"],["closed","Closed"]].map(([k,l]) => `<button data-sm="${k}" class="${s.signup === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      <div class="row wrap" style="margin-top:12px"><select class="in" id="inv-uses" style="width:auto">${[1,3,5,10].map(n => `<option value="${n}">${n} use${n > 1 ? "s" : ""}</option>`).join("")}</select><select class="in" id="inv-days" style="width:auto">${[[1,"1 day"],[7,"7 days"],[30,"30 days"]].map(([d,l]) => `<option value="${d}" ${d === 7 ? "selected" : ""}>${l}</option>`).join("")}</select><select class="in" id="inv-role" style="width:auto"><option value="user">as user</option><option value="admin">as admin</option></select><button class="btn primary grow" id="inv-new">Create invite</button></div>
+      ${(A.invites || []).map(i => `<div class="urow"><div class="grow"><div class="code">${esc(i.code)}</div><div class="sub">${i.uses} use${i.uses > 1 ? "s" : ""} left · ${i.role} · expires ${new Date(i.expires * 1000).toLocaleDateString()}</div></div><button class="btn sm" data-icopy="${esc(inviteLink(i.code))}">Copy link</button><button class="btn sm danger" data-idel="${esc(i.code)}">✕</button></div>`).join("")}
+    </div>
+
+    <h2>Storage</h2>
+    <div class="glass card">${st ? `
+      <div class="row"><b class="grow">${fmtBytes(used)} used</b><span class="sub">${fmtBytes(st.free)} free of ${fmtBytes(st.total)}</span></div>
+      <div class="bar" style="height:12px;margin-top:10px;display:flex">${seg(st.kinds.pc || 0, "var(--cyan)")}${seg(st.kinds.rom || 0, "var(--amber)")}${seg(st.kinds.html || 0, "var(--pink)")}${seg(st.saves || 0, "var(--green)")}</div>
+      <div class="row wrap" style="margin-top:10px;font-size:13px"><span>🟦 PC ${fmtBytes(st.kinds.pc || 0)}</span><span>🟨 Retro ${fmtBytes(st.kinds.rom || 0)}</span><span>🟪 Web ${fmtBytes(st.kinds.html || 0)}</span><span>🟩 Saves ${fmtBytes(st.saves || 0)}</span></div>
+      ${st.users.length ? `<div style="margin-top:12px">${st.users.map(u => `<div class="kv"><span>${esc(u.name)}</span><b>${fmtBytes(u.size)}</b></div>`).join("")}</div>` : ""}` : `<div class="sub">Loading…</div>`}
+    </div>
+
+    <h2>Settings</h2>
+    <div class="glass card">
+      <label class="f"><span>CLOUD NAME</span><input class="in" id="cl-name" value="${esc(s.name)}"></label>
+      <button class="btn primary block" style="margin-top:14px" id="cl-save">Save</button>
+      ${S.sys ? `<div style="margin-top:16px"><div class="kv"><span>Address</span><b>https://bulb.local · ${esc(S.sys.ip)}</b></div><div class="kv"><span>Version</span><b>Bulb OS ${esc(S.sys.version)}</b></div></div>` : ""}
+      ${S.user.role === "owner" ? `<div class="row" style="margin-top:14px"><button class="btn grow" id="pw-restart">↻ Restart</button><button class="btn grow danger" id="pw-off">⏻ Shut down</button></div>` : ""}
+    </div>`;
+}
+function bindAdmin() {
+  const A = S.admin;
+  if (!A.settings) return;
+  $$("[data-urole]").forEach(sel => sel.onchange = async () => { try { await api(`/api/admin/users/${sel.dataset.urole}`, { method: "PATCH", body: { role: sel.value } }); toast("Role updated."); loadAdmin(); } catch (e) { fail(e); } });
+  $$("[data-uedit]").forEach(b => b.onclick = () => userSheet(A.users.find(u => u.id === b.dataset.uedit)));
+  $$("[data-sm]").forEach(b => b.onclick = async () => { try { S.admin.settings = await api("/api/admin/settings", { method: "PUT", body: { signup: b.dataset.sm } }); render(); toast("Sign-up mode saved."); } catch (e) { fail(e); } });
+  $("#inv-new").onclick = async () => { try { const i = await api("/api/admin/invites", { body: { uses: +$("#inv-uses").value, days: +$("#inv-days").value, role: $("#inv-role").value } }); await loadAdmin(); share(`${location.origin}/#join=${i.code}`, i.code); } catch (e) { fail(e); } };
+  $$("[data-icopy]").forEach(b => b.onclick = () => share(b.dataset.icopy));
+  $$("[data-idel]").forEach(b => b.onclick = async () => { try { await api(`/api/admin/invites/${b.dataset.idel}`, { method: "DELETE" }); loadAdmin(); } catch (e) { fail(e); } });
+  $("#cl-save").onclick = async () => { try { S.admin.settings = await api("/api/admin/settings", { method: "PUT", body: { name: $("#cl-name").value } }); S.name = S.admin.settings.name; toast("Saved."); render(); } catch (e) { fail(e); } };
+  const power = action => async () => {
+    if (!confirm(action === "restart" ? "Restart Bulb OS? Everyone is disconnected for a minute or two." : "Shut down Bulb OS? You'll need to start the VM again to use it.")) return;
+    try { await api("/api/admin/power", { body: { action } }); toast(action === "restart" ? "Restarting… refresh in a minute." : "Shutting down."); } catch (e) { fail(e); }
+  };
+  const r = $("#pw-restart"); if (r) r.onclick = power("restart");
+  const o = $("#pw-off"); if (o) o.onclick = power("shutdown");
+}
+async function share(link, code) {
+  try { if (navigator.share) { await navigator.share({ title: "Join " + S.name, text: `Join my Bulb game cloud${code ? " — invite code " + code : ""}`, url: link }); return; } } catch (e) {}
+  try { await navigator.clipboard.writeText(link); toast("Invite link copied."); } catch (e) { prompt("Copy this invite link:", link); }
+}
+function userSheet(u) {
+  sheet(`
+    <div class="row">${avatar(u, 52)}<div class="grow"><h1 style="font-size:22px;margin:0">${esc(u.display)}</h1><div class="sub">@${esc(u.username)} · ${esc(u.role)}</div></div></div>
+    <div style="margin-top:12px">
+      <div class="toggle"><div>Can play PC games</div><label class="sw"><input type="checkbox" id="u-pc" ${u.canPC ? "checked" : ""}><i></i></label></div>
+      <div class="toggle"><div>Can upload games</div><label class="sw"><input type="checkbox" id="u-up" ${u.canUpload ? "checked" : ""}><i></i></label></div>
+      <div class="toggle"><div><div>Disabled</div><div class="sub">Signs them out and blocks sign-in</div></div><label class="sw"><input type="checkbox" id="u-dis" ${u.disabled ? "checked" : ""}><i></i></label></div>
+    </div>
+    <label class="f"><span>SET A NEW PASSWORD (OPTIONAL)</span><input class="in" id="u-pw" type="password" autocomplete="new-password"></label>
+    <button class="btn primary block" style="margin-top:14px" id="u-save">Save</button>
+    <button class="btn danger block" style="margin-top:10px" id="u-del">Remove ${esc(u.display)}</button>
+    <div class="sub" style="margin-top:8px">Removing someone deletes their saves. Games they uploaded are kept and handed to you.</div>`, (sh, close) => {
+    $("#u-save", sh).onclick = async () => { try { const body = { canPC: $("#u-pc", sh).checked, canUpload: $("#u-up", sh).checked, disabled: $("#u-dis", sh).checked }; if ($("#u-pw", sh).value) body.password = $("#u-pw", sh).value; await api(`/api/admin/users/${u.id}`, { method: "PATCH", body }); toast("Saved."); close(); loadAdmin(); } catch (e) { fail(e); } };
+    $("#u-del", sh).onclick = async () => { if (!confirm(`Remove ${u.display} from ${S.name}?`)) return; try { await api(`/api/admin/users/${u.id}`, { method: "DELETE" }); toast("Removed."); close(); loadAdmin(); } catch (e) { fail(e); } };
+  });
+}
+
+// ---------------------------------------------------------------------------
+(async () => {
+  const h = location.hash.slice(1);
+  if (h.startsWith("join=")) { S.joinCode = decodeURIComponent(h.slice(5)).toUpperCase(); S.authMode = "signup"; }
+  else if (h) S.tab = h;
+  try {
+    const st = await api("/api/status");
+    S.setup = st.setup; S.signup = st.signup; S.name = st.name || "Bulb"; S.user = st.user; S.ready = true;
+    if (S.user && S.joinCode) toast("You're already signed in.");
+    if (S.user) { await loadAll(); if (S.tab !== "home") go(S.tab); } else render();
+  } catch (e) { S.ready = true; render(); fail(e); }
+  setInterval(() => { if (S.user && !document.hidden) loadSys(); }, 20000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && S.user) { loadSys(); refreshLibrary().catch(() => {}); } });
+})();
+})();
+</script>
+</body>
+</html>

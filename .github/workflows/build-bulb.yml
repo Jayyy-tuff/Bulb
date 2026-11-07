@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, "bulb-*"]
     tags: ["v*"]
+    paths-ignore: ["os/**", ".github/workflows/build-bulb-os.yml"]
   workflow_dispatch:
 
 jobs:
