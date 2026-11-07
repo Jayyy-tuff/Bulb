@@ -1,0 +1,68 @@
+name: Build Bulb APK
+
+on:
+  push:
+    branches: [main, "bulb-*"]
+    tags: ["v*"]
+    paths-ignore: ["os/**", ".github/workflows/build-bulb-os.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check out (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: false
+
+      - name: Fetch runtime files (Git LFS)
+        run: |
+          set -e
+          git lfs install --local
+          # A fork may not hold the LFS objects itself; fall back to the upstream WinXclipse store.
+          git lfs pull || git -c lfs.url=https://github.com/avavo/WinXclipse.git/info/lfs lfs pull
+          ls -la app/src/main/assets/*.tzst
+          size=$(stat -c %s app/src/main/assets/imagefs.tzst)
+          if [ "$size" -lt 1000000 ]; then echo "imagefs.tzst is still an LFS pointer ($size bytes)"; exit 1; fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Android SDK packages
+        run: |
+          SDKM="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses >/dev/null || true
+          "$SDKM" --install "ndk;27.0.12077973" "cmake;3.22.1" "build-tools;35.0.0" "platforms;android-34" >/dev/null
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          # The SDL2 submodule ships its own sample-project wrapper JAR that Gradle's
+          # list doesn't know. Bulb builds with the root ./gradlew (validated upstream).
+          validate-wrappers: false
+
+      - name: Build Bulb (release)
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleBulbRelease --stacktrace --no-daemon
+
+      - name: Collect APK
+        run: |
+          apk=$(find app/build/outputs/apk/bulb/release -name "*.apk" | head -1)
+          echo "Built: $apk"
+          cp "$apk" Bulb.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bulb-apk
+          path: Bulb.apk
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Bulb.apk

@@ -152,7 +152,9 @@ public class MainActivity extends LocalizedActivity implements NavigationView.On
             openInputControls();
         } else {
             int selectedMenuItemId = intent.getIntExtra("selected_menu_item_id", 0);
-            int menuItemId = selectedMenuItemId > 0 ? selectedMenuItemId : R.id.main_menu_shortcuts;
+            // Bulb opens on its cloud library; the other editions keep the shortcuts screen.
+            int defaultMenuItemId = "bulb".equals(BuildConfig.FLAVOR) ? R.id.main_menu_bulb_cloud : R.id.main_menu_shortcuts;
+            int menuItemId = selectedMenuItemId > 0 ? selectedMenuItemId : defaultMenuItemId;
 
             actionBar.setHomeAsUpIndicator(R.drawable.icon_action_bar_menu);
             onNavigationItemSelected(navigationView.getMenu().findItem(menuItemId));
@@ -711,6 +713,9 @@ public class MainActivity extends LocalizedActivity implements NavigationView.On
         }
 
         switch (item.getItemId()) {
+            case R.id.main_menu_bulb_cloud:
+                show(new com.winlator.cmod.bulb.BulbCloudFragment(), false);
+                break;
             case R.id.main_menu_shortcuts:
                 show(new ShortcutsFragment(), false);  // Forward animation
                 break;

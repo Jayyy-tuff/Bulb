@@ -1,0 +1,33 @@
+#!/bin/sh
+# bulbctl - manage Bulb OS from the console
+DATA=/var/lib/bulb
+ip4() { ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'; }
+need_root() { [ "$(id -u)" = 0 ] || exec sudo "$0" "$@"; }
+case "${1:-status}" in
+  status)
+    systemctl is-active --quiet bulb && echo "● Bulb OS running → https://bulb.local  (https://$(ip4))" || echo "○ Bulb OS stopped (sudo systemctl start bulb)"
+    df -h /var/lib/bulb | tail -1 | awk '{print "  Storage: " $3 " used, " $4 " free"}'
+    ;;
+  logs) journalctl -u bulb -f -n "${2:-100}" ;;
+  restart) need_root "$@"; systemctl restart bulb && echo "Restarted." ;;
+  url) echo "https://bulb.local  (https://$(ip4))" ;;
+  fingerprint)
+    need_root "$@"
+    openssl x509 -in "$DATA/cert.pem" -noout -fingerprint -sha256 | sed 's/.*=//'
+    echo "The Bulb app shows this the first time it connects. They should match."
+    ;;
+  reset-password)
+    need_root "$@"
+    [ $# -ge 3 ] || { echo "usage: bulbctl reset-password <username> <new-password>"; exit 1; }
+    sudo -u bulbos BULB_DATA=$DATA python3 /opt/bulb/server/bulb.py reset-password "$2" "$3"
+    ;;
+  update)
+    need_root "$@"
+    REPO="${BULB_REPO:-Jayyy-tuff/Bulb}"; BRANCH="${2:-main}"
+    tmp=$(mktemp -d)
+    echo "Downloading Bulb OS from github.com/$REPO ($BRANCH)..."
+    curl -fsSL "https://github.com/$REPO/archive/refs/heads/$BRANCH.tar.gz" | tar -xz -C "$tmp" || { echo "Download failed"; exit 1; }
+    sh "$tmp"/*/os/system/setup.sh && rm -rf "$tmp" && echo "Updated."
+    ;;
+  *) echo "usage: bulbctl status|logs|restart|url|fingerprint|reset-password|update"; exit 1 ;;
+esac

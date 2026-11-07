@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>Bulb · Play</title>
+<style>
+html,body{margin:0;height:100%;background:#000;color:#eef1ff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none;touch-action:none}
+#game{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh}
+#hud{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:8px;z-index:9999;display:flex;gap:6px;align-items:center}
+.hb{border:1px solid rgba(140,160,255,.35);background:rgba(10,12,28,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#eef1ff;border-radius:12px;
+  min-width:40px;height:40px;padding:0 12px;font:600 14px system-ui;display:flex;align-items:center;justify-content:center;opacity:.6;touch-action:manipulation}
+.hb:active{opacity:1}
+#sync{font-size:12px;color:#9aa3c7;background:rgba(10,12,28,.6);padding:6px 10px;border-radius:10px;opacity:0;transition:opacity .4s;pointer-events:none}
+#sync.show{opacity:1}
+#menu{position:fixed;top:calc(56px + env(safe-area-inset-top,0px));right:8px;z-index:9999;display:none;flex-direction:column;gap:6px;padding:8px;border-radius:16px;
+  background:rgba(12,14,32,.92);border:1px solid rgba(140,160,255,.3);min-width:220px}
+#menu.open{display:flex}
+#menu button{border:0;background:rgba(255,255,255,.06);color:#eef1ff;border-radius:11px;padding:12px 14px;text-align:left;font:600 14px system-ui}
+#menu button:active{background:rgba(255,210,63,.25)}
+#msg{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:24px;z-index:10000;
+  background:radial-gradient(600px 400px at 50% 40%,rgba(255,210,63,.12),transparent),#05060d}
+#msg h1{font-size:22px;margin:0 0 8px}
+#msg p{color:#9aa3c7;line-height:1.5;max-width:520px;margin:8px auto}
+#msg a,#msg button{display:inline-block;margin-top:14px;color:#1a1200;background:#ffd23f;border:0;border-radius:12px;padding:12px 18px;font:700 15px system-ui;text-decoration:none}
+.ring{width:80px;height:80px;border-radius:50%;margin:0 auto 18px;border:3px solid rgba(63,240,255,.15);border-top-color:#3ff0ff;border-right-color:#ffd23f;animation:s 1s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="msg"><div><div class="ring"></div><h1 id="msg-t">Loading…</h1><p id="msg-p"></p></div></div>
+<div id="game"></div>
+<div id="hud"><span id="sync"></span><button class="hb" id="hb-menu" aria-label="Bulb menu">☰</button></div>
+<div id="menu">
+  <button id="m-save">☁ Save state to hub</button>
+  <button id="m-load">☁ Load hub state</button>
+  <button id="m-sync">↻ Sync in-game save now</button>
+  <button id="m-full">⛶ Fullscreen</button>
+  <button id="m-exit">← Back to library</button>
+</div>
+<script>
+"use strict";
+(async () => {
+  const $ = s => document.querySelector(s);
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id") || "";
+  const show = (t, p, html) => { $("#msg").style.display = "grid"; $("#msg").innerHTML = `<div>${html === "spin" ? '<div class="ring"></div>' : ""}<h1>${t}</h1><p>${p || ""}</p>${html && html !== "spin" ? html : ""}</div>`; };
+  const hide = () => { $("#msg").style.display = "none"; };
+  const back = '<a href="/#library">Back to library</a>';
+  let syncTimer = null;
+  const flash = t => { const s = $("#sync"); s.textContent = t; s.classList.add("show"); clearTimeout(syncTimer); syncTimer = setTimeout(() => s.classList.remove("show"), 2200); };
+
+  let cfg;
+  try {
+    const r = await fetch(`/api/games/${encodeURIComponent(id)}/play`, { credentials: "same-origin" });
+    if (r.status === 401) { location.href = "/"; return; }
+    cfg = await r.json();
+    if (!r.ok) throw new Error(cfg.error || "Couldn't load this game");
+  } catch (e) { show("Can't start the game", e.message, back); return; }
+
+  // 3DS / PSP cores need SharedArrayBuffer -> cross-origin isolation (served by the hub when threads=1)
+  if (cfg.threads && !window.crossOriginIsolated) {
+    if (params.get("threads") !== "1") { params.set("threads", "1"); location.replace("/play?" + params.toString()); return; }
+    show("This console needs a secure connection",
+      `${cfg.systemName} uses multi-threaded emulation, which browsers only allow over HTTPS. Open Bulb at <b>https://${location.hostname}:${location.port || 7443}</b> (accept the certificate warning once) and try again. Safari doesn't support this yet; use Chrome, Edge or Firefox.`, back);
+    return;
+  }
+
+  document.title = cfg.title + " · Bulb";
+  show(cfg.title, `${cfg.systemName} · downloading the ${cfg.core} core the first time can take a moment`, "spin");
+
+  const base = `https://cdn.emulatorjs.org/${cfg.channel}/data/`;
+  window.EJS_player = "#game";
+  window.EJS_core = cfg.core;
+  window.EJS_gameUrl = cfg.romUrl;
+  window.EJS_gameName = cfg.title;
+  window.EJS_gameID = id;
+  window.EJS_pathtodata = base;
+  if (cfg.biosUrl) window.EJS_biosUrl = cfg.biosUrl;
+  window.EJS_threads = !!cfg.threads;
+  window.EJS_startOnLoaded = cfg.startOnLoaded;
+  window.EJS_volume = cfg.volume;
+  window.EJS_color = cfg.color;
+  window.EJS_backgroundColor = "#05060d";
+  window.EJS_defaultOptions = cfg.options;
+  window.EJS_language = "en-US";
+  window.EJS_disableAutoLang = true;
+
+  const em = () => window.EJS_emulator;
+  const gm = () => em() && em().gameManager;
+
+  async function getBin(kind) {
+    const r = await fetch(`/api/saves/${id}/${kind}`, { credentials: "same-origin", cache: "no-store" });
+    if (!r.ok) return null;
+    return new Uint8Array(await r.arrayBuffer());
+  }
+  async function putBin(kind, data) {
+    const r = await fetch(`/api/saves/${id}/${kind}`, { method: "PUT", body: data, credentials: "same-origin" });
+    if (!r.ok) throw new Error("Upload failed");
+  }
+  const sig = d => { if (!d) return ""; let h = d.length; for (let i = 0; i < d.length; i += 61) h = (h * 33 + d[i]) | 0; return d.length + ":" + h; };
+  let lastSram = "";
+
+  async function pushSram(force) {
+    if (!cfg.cloudSaves || !gm()) return;
+    try {
+      const d = gm().getSaveFile();
+      if (!d || !d.length) return;
+      const s = sig(d);
+      if (!force && s === lastSram) return;
+      await putBin("sram", d);
+      lastSram = s;
+      flash("☁ Save synced");
+    } catch (e) { flash("☁ Sync failed"); }
+  }
+  async function pullSram() {
+    if (!cfg.cloudSaves || !cfg.hasSram) return;
+    try {
+      const d = await getBin("sram");
+      if (!d || !d.length) return;
+      const g = gm();
+      const path = g.getSaveFilePath();
+      const dir = path.substring(0, path.lastIndexOf("/"));
+      try { g.FS.mkdirTree ? g.FS.mkdirTree(dir) : g.FS.mkdir(dir); } catch (e) {}
+      g.FS.writeFile(path, d);
+      g.loadSaveFiles();
+      lastSram = sig(d);
+      flash("☁ Loaded your cloud save");
+    } catch (e) { console.warn("cloud save load failed", e); }
+  }
+
+  window.EJS_onGameStart = () => {
+    hide();
+    pullSram();
+    setInterval(() => pushSram(false), 30000);
+  };
+  window.EJS_ready = () => { if (!cfg.startOnLoaded) hide(); };
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pushSram(false); });
+  window.addEventListener("pagehide", () => {
+    try {
+      const d = gm() && gm().getSaveFile();
+      if (d && cfg.cloudSaves && sig(d) !== lastSram) fetch(`/api/saves/${id}/sram`, { method: "PUT", body: d, keepalive: d.length < 60000, credentials: "same-origin" });
+    } catch (e) {}
+  });
+
+  // HUD menu
+  const menu = $("#menu");
+  $("#hb-menu").onclick = () => menu.classList.toggle("open");
+  $("#m-save").onclick = async () => {
+    menu.classList.remove("open");
+    try { const st = gm().getState(); await putBin("state", st); cfg.hasState = true; flash("☁ State saved to hub"); } catch (e) { flash("Couldn't save state"); }
+  };
+  $("#m-load").onclick = async () => {
+    menu.classList.remove("open");
+    try { const st = await getBin("state"); if (!st) return flash("No hub state yet"); gm().loadState(st); flash("☁ State loaded"); } catch (e) { flash("Couldn't load state"); }
+  };
+  $("#m-sync").onclick = () => { menu.classList.remove("open"); pushSram(true); };
+  $("#m-full").onclick = () => { menu.classList.remove("open"); (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen({ navigationUI: "hide" })).catch(() => {}); };
+  $("#m-exit").onclick = async () => { menu.classList.remove("open"); await pushSram(false); location.href = "/#library"; };
+
+  const s = document.createElement("script");
+  s.src = base + "loader.js";
+  s.onerror = () => show("Couldn't load EmulatorJS", `The phone or this device couldn't reach cdn.emulatorjs.org (${cfg.channel} channel). Emulator cores download from there the first time; check the internet connection.`, back);
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>

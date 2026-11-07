@@ -1,5 +1,35 @@
 <div align="center">
 
+# Bulb
+
+**Your games, on your phone.** Bulb is a fork of [WinXclipse](https://github.com/avavo/WinXclipse)
+(Winlator CMOD tuned for Samsung Exynos / Xclipse GPUs), growing into an all-in-one game app:
+Windows games through Wine + Box64/FEX, your Steam and GOG libraries, and soon Epic,
+retro consoles and HTML5 games in one library.
+
+</div>
+
+## Get the APK
+
+Every push builds **Bulb.apk** with GitHub Actions (Actions tab → latest *Build Bulb APK* run →
+*Artifacts*). Tags like `v0.1` also publish it as a Release. Bulb installs as its own app
+(`app.bulb.player`), next to WinXclipse if you have it.
+
+## Roadmap
+
+1. ✅ Bulb edition: own name, icon, package and signing key; CI builds
+2. Bulb home: one library for Steam/GOG, uploaded PC games, retro (NES→3DS) and HTML5 games
+3. Epic Games support, ported from [GameNative](https://github.com/utkarshdalal/GameNative)
+4. Bulb cloud saves and accounts
+
+## License
+
+GPL-3.0, like WinXclipse and GameNative. Everything below is the upstream WinXclipse README.
+
+---
+
+<div align="center">
+
 # WinXclipse
 
 **Windows on Android, tuned for Exynos & Xclipse.**

@@ -1,0 +1,76 @@
+name: Build Bulb OS ISO
+
+on:
+  push:
+    branches: [main, "bulb-*"]
+    paths: ["os/**", ".github/workflows/build-bulb-os.yml"]
+    tags: ["os-v*"]
+  workflow_dispatch:
+
+jobs:
+  iso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          submodules: false
+      - name: Tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xorriso
+      - name: Build BulbOS.iso
+        run: bash os/iso/build-iso.sh "$PWD/BulbOS.iso"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BulbOS-iso
+          path: |
+            BulbOS.iso
+            BulbOS.iso.sha256
+          compression-level: 0
+      - name: Publish release (os-v* tags)
+        if: startsWith(github.ref, 'refs/tags/os-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            BulbOS.iso
+            BulbOS.iso.sha256
+
+  # Installs the ISO in a QEMU virtual machine (like you would in VirtualBox) and
+  # checks that https://<vm>/ answers. Takes ~15-25 minutes.
+  test-install:
+    needs: iso
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: BulbOS-iso
+      - name: QEMU + KVM
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 qemu-utils socat
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Install Bulb OS in a VM
+        run: |
+          qemu-img create -f qcow2 disk.qcow2 16G
+          qemu-system-x86_64 -enable-kvm -m 2048 -smp 2 \
+            -drive file=disk.qcow2,if=virtio -cdrom BulbOS.iso -boot once=d \
+            -netdev user,id=n0,hostfwd=tcp::8443-:443 -device virtio-net-pci,netdev=n0 \
+            -display none -monitor unix:qemu.sock,server,nowait -daemonize
+          sleep 20
+          echo "sendkey ret" | socat - unix:qemu.sock   # "Install Bulb OS" at the boot prompt
+          for i in $(seq 1 100); do
+            if curl -fsk --max-time 5 https://localhost:8443/api/status; then echo; echo "✓ Bulb OS is up after install"; exit 0; fi
+            sleep 30
+          done
+          echo "Bulb OS didn't answer in time"; exit 1
+      - name: Screenshot of the VM (on failure)
+        if: failure()
+        run: |
+          echo "screendump vm.ppm" | socat - unix:qemu.sock || true
+          sleep 2
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: vm-screenshot
+          path: vm.ppm
