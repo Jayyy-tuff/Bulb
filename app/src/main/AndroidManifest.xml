@@ -89,6 +89,13 @@
         </activity-alias>
 
         <activity
+            android:name="com.winlator.cmod.bulb.BulbWebActivity"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode"
+            android:hardwareAccelerated="true"
+            android:exported="false" />
+
+        <activity
             android:name="com.winlator.cmod.BigPictureActivity"
             android:theme="@style/Theme.AppCompat"
             android:exported="false" />
